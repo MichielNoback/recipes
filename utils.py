@@ -44,29 +44,34 @@ def read_ingredients(ingredients_data_file: str) -> pd.core.frame.DataFrame:
     return ingredients
 
 def create_ingredient_markdown(selected_ingredient):
-    flavor_molecules = list()
-    flavor_molecules.append('| PubChem ID | Name | Flavor profile |\n')
-    flavor_molecules.append('| ---------- | ---- | -------------- |\n')
-    for fm in selected_ingredient.flavor_molecules:
-        flavor_molecules.append(f'| {fm.pubchem_id} | {fm.common_name} | {fm.flavor_profile} |\n') #
-    fm_table = ''.join(flavor_molecules)
-    #print(f'{fm_table}')
     ingredient_info = f"""
-    # Ingredient: {selected_ingredient.alias}  
-    ### pubchem ID: {selected_ingredient.ingredient_id}  
-    ### synonyms: {selected_ingredient.synonyms}  
-    ### scientific name: {selected_ingredient.scientific_name}  
-    ### category: {selected_ingredient.category}  
+    ## Ingredient: {selected_ingredient.alias}  
+    #### pubchem ID: {selected_ingredient.ingredient_id}  
+    #### synonyms: {selected_ingredient.synonyms}  
+    #### scientific name: {selected_ingredient.scientific_name}  
+    #### category: {selected_ingredient.category}  
     ----  
-    ### Flavor molecules
+    #### Flavor molecules
     """
-    ingredient_info = ingredient_info.replace('    ', '')
-    ingredient_info += '\n'
-    ingredient_info += fm_table
-    print(ingredient_info)
     return ingredient_info
-    #{''.join(flavor_molecules)}
 
-    # | PubChem ID | Name | Flavor profile |
-    # | ---------- | ---- | -------------- |
-    # | hallo | moi | doei |
+def get_ingredient(selected_ingredient: str, datastore: DataStore, with_flavor_molecules: bool = True) -> Ingredient:
+    ingredient = datastore.ingredients[datastore.ingredients['alias'] == selected_ingredient]
+
+    flavor_molecules = None
+    if with_flavor_molecules:
+        ingredient_flavor_molecules = ingredient['molecules'].iloc[0]
+        flavor_molecules = list()
+        for id in ingredient_flavor_molecules:
+            # fetch flavor molecules
+            fm = datastore.flavor_molecules[datastore.flavor_molecules['pubchem id'] == id]
+            fm_inst = FlavorMolecule(id, fm.iloc[0, 1], fm.iloc[0, 2])
+            flavor_molecules.append(fm_inst)
+
+    ingredient_inst = Ingredient(ingredient.iloc[0, 0], 
+                                 ingredient.iloc[0, 1], 
+                                 ingredient.iloc[0, 2], 
+                                 ingredient.iloc[0, 3], 
+                                 ingredient.iloc[0, 4],
+                                 flavor_molecules)
+    return ingredient_inst
